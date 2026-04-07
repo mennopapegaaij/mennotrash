@@ -16,18 +16,20 @@ SPRING_KRACHT = 14      # Hoe hoog het vierkantje springt
 ZWAARTEKRACHT = 0.6     # Hoe snel het vierkantje valt
 
 # --- Blokken ---
-BLOK_BREEDTE       = 30    # Hoe breed een blok is
-BLOK_MIN_HOOGTE    = 40    # Minimale hoogte van een blok
-BLOK_MAX_HOOGTE    = 100   # Maximale hoogte van een blok
-BEGIN_SNELHEID     = 5     # Hoe snel de blokken beginnen te bewegen
-SNELHEID_TOENAME   = 0.3   # Hoe veel sneller het wordt per 10 seconden
+# Blokken zijn nu platte platforms die op verschillende hoogtes vliegen!
+BLOK_BREEDTE     = 80    # Blokken zijn breder zodat je erop kunt staan
+BLOK_HOOGTE      = 20    # Plat platform (niet meer hoge muren)
+BLOK_MIN_VLIEG_Y = 0     # Minimale vlieghoogte (op de grond)
+BLOK_MAX_VLIEG_Y = 160   # Maximale vlieghoogte
+BEGIN_SNELHEID   = 5
+SNELHEID_TOENAME = 0.3
 
 # --- Kleuren ---
-ACHTERGROND_KLEUR = (30, 30, 50)       # Donkerblauw
-GROND_KLEUR       = (60, 200, 60)      # Groen
-GROND_RAND_KLEUR  = (40, 140, 40)      # Donkerder groen voor rand
-SPELER_KLEUR      = (255, 220, 50)     # Geel vierkantje
-OOG_KLEUR         = (30, 30, 30)       # Donker voor de ogen
-BLOK_KLEUR        = (200, 60, 60)      # Rood blok
-BLOK_RAND_KLEUR   = (140, 20, 20)      # Donkere rand van blok
-SCORE_KLEUR       = (255, 255, 255)    # Witte tekst
+ACHTERGROND_KLEUR = (30, 30, 50)
+GROND_KLEUR       = (60, 200, 60)
+GROND_RAND_KLEUR  = (40, 140, 40)
+SPELER_KLEUR      = (255, 220, 50)
+OOG_KLEUR         = (30, 30, 30)
+BLOK_KLEUR        = (200, 60, 60)
+BLOK_RAND_KLEUR   = (140, 20, 20)
+SCORE_KLEUR       = (255, 255, 255)
