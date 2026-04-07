@@ -71,18 +71,17 @@ def teken_achtergrond(teller):
 
 
 def teken_blok(blok):
-    """Teken één vliegend platform.
+    """Teken één vliegend platform met stekels boven en onder.
     blok = [x, vlieg_y, breedte, hoogte, op_speler]
     """
     bx   = int(blok[0])
-    bvY  = blok[1]    # hoogte boven de grond (in spelpixels)
+    bvY  = blok[1]
     bw   = blok[2]
     bh   = blok[3]
 
-    # Scherm-y van de bovenkant van het blok
     by_scherm = SCHERM_HOOGTE - GROND_Y - bvY - bh
 
-    # Schaduw onder het blok (laat zien hoe hoog het zweeft)
+    # Schaduw onder het blok
     schaduw_y = SCHERM_HOOGTE - GROND_Y + 2
     pygame.draw.ellipse(scherm, (0, 0, 0),
                         (bx + 4, schaduw_y, bw - 8, 6))
@@ -97,8 +96,8 @@ def teken_blok(blok):
     pygame.draw.rect(scherm, (230, 100, 100),
                      (bx + 4, by_scherm + 3, bw - 8, 4), border_radius=2)
 
-    # Kleine oogjes (blok kijkt je aan) — alleen als het breed genoeg is
-    if bw >= 40:
+    # Kleine oogjes — alleen als het blok breed genoeg is
+    if bw >= 60:
         oog_y = by_scherm + bh // 2 - 3
         pygame.draw.circle(scherm, (255, 255, 255), (bx + bw - 22, oog_y), 5)
         pygame.draw.circle(scherm, OOG_KLEUR,       (bx + bw - 21, oog_y + 1), 3)
@@ -108,6 +107,35 @@ def teken_blok(blok):
                          (bx + bw - 26, oog_y - 6), (bx + bw - 18, oog_y - 3), 2)
         pygame.draw.line(scherm, OOG_KLEUR,
                          (bx + bw - 14, oog_y - 3), (bx + bw - 6,  oog_y - 6), 2)
+
+    # Stekels (zwarte driehoeken) boven en onder het blok
+    teken_driehoeken(bx, bvY, bw, bh)
+
+
+def teken_driehoeken(bx, bvY, bw, bh, stekel_grootte=10):
+    """Teken zwarte stekels (driehoeken) boven en onder het blok."""
+    blok_top_s   = SCHERM_HOOGTE - GROND_Y - bvY - bh   # bovenkant in scherm-coords
+    blok_onder_s = SCHERM_HOOGTE - GROND_Y - bvY          # onderkant in scherm-coords
+
+    # Hoeveel driehoeken passen er naast elkaar?
+    passen = max(1, bw // (stekel_grootte * 2))
+
+    for i in range(passen):
+        mx = bx + i * (stekel_grootte * 2) + stekel_grootte
+
+        # Driehoek BOVEN (punt omhoog)
+        pygame.draw.polygon(scherm, (10, 10, 10), [
+            (mx - stekel_grootte, blok_top_s),
+            (mx + stekel_grootte, blok_top_s),
+            (mx,                  blok_top_s - stekel_grootte),
+        ])
+
+        # Driehoek ONDER (punt omlaag)
+        pygame.draw.polygon(scherm, (10, 10, 10), [
+            (mx - stekel_grootte, blok_onder_s),
+            (mx + stekel_grootte, blok_onder_s),
+            (mx,                  blok_onder_s + stekel_grootte),
+        ])
 
 
 def teken_hud(score, snelheid, game_over, hoogste_score):
@@ -193,26 +221,30 @@ def controleer_botsing(speler, blok, prev_y):
 
     # --- Overlap gevonden! Bepaal of landing of crash ---
 
-    # Omhoog gaand (springt van de grond omhoog): door het platform heen gaan (zoals bij Mario)
-    if speler.snelheid_y > 0:
-        return 'geen'
-
     # Controleer of de speler van BOVEN op het platform is gevallen.
     # prev_y = positie vóór deze frame. Als prev_y >= blok_boven was de speler erBOVEN.
-    if prev_y >= blok_boven - 4:
+    if speler.snelheid_y <= 0 and prev_y >= blok_boven - 4:
         return 'landen'
 
-    # Speler is in de zijkant gevlogen → game over
+    # Alles anders (zijkant, van onder, door stekels) = crash
     return 'crash'
 
 
 def nieuw_blok():
     """Maak een nieuw vliegend platform.
     Geeft een lijst terug: [x, vlieg_y, breedte, hoogte, op_speler]
+    Sommige blokken zijn lang, anderen kort.
     """
     vlieg_y = random.randint(BLOK_MIN_VLIEG_Y, BLOK_MAX_VLIEG_Y)
-    breedte = BLOK_BREEDTE
-    hoogte  = BLOK_HOOGTE
+    # Willekeurig: soms een kort blok, soms een lang blok
+    kans_lang = random.random()
+    if kans_lang < 0.25:
+        breedte = random.randint(160, 260)   # lang platform
+    elif kans_lang < 0.6:
+        breedte = random.randint(80, 140)    # normaal platform
+    else:
+        breedte = random.randint(40, 75)     # klein platform (moeilijker)
+    hoogte = BLOK_HOOGTE
     return [float(SCHERM_BREEDTE + 20), vlieg_y, breedte, hoogte, False]
 
 
@@ -290,8 +322,9 @@ def speel():
             volgende_blok -= 1
             if volgende_blok <= 0:
                 blokken.append(nieuw_blok())
-                min_pauze = max(25, 60 - int(snelheid * 3))
-                max_pauze = max(50, 110 - int(snelheid * 4))
+                # Dichter bij elkaar: kortere pauzes
+                min_pauze = max(15, 45 - int(snelheid * 3))
+                max_pauze = max(30,  80 - int(snelheid * 4))
                 volgende_blok = random.randint(min_pauze, max_pauze)
 
             # Blokken bewegen, botsing controleren en tekenen
