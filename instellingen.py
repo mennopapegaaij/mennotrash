@@ -20,7 +20,7 @@ ZWAARTEKRACHT = 0.6     # Hoe snel het vierkantje valt
 BLOK_BREEDTE     = 80    # Blokken zijn breder zodat je erop kunt staan
 BLOK_HOOGTE      = 20    # Plat platform (niet meer hoge muren)
 BLOK_MIN_VLIEG_Y = 0     # Minimale vlieghoogte (op de grond)
-BLOK_MAX_VLIEG_Y = 160   # Maximale vlieghoogte
+BLOK_MAX_VLIEG_Y = 120   # Maximale vlieghoogte (hoger dan dit kan je niet bereiken)
 BEGIN_SNELHEID   = 5
 SNELHEID_TOENAME = 0.3
 

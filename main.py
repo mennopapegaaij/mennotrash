@@ -157,9 +157,11 @@ def teken_start_scherm():
     scherm.blit(start_tekst, (SCHERM_BREEDTE // 2 - start_tekst.get_width() // 2, 320))
 
 
-def controleer_botsing(speler, blok):
+def controleer_botsing(speler, blok, prev_y):
     """Controleer of de speler een blok raakt.
     Geeft terug: 'geen', 'landen' (van boven), of 'crash' (van de zijkant).
+
+    prev_y = positie van speler VOOR de beweging deze frame.
     blok = [x, vlieg_y, breedte, hoogte, op_speler]
     """
     bx  = blok[0]
@@ -175,14 +177,12 @@ def controleer_botsing(speler, blok):
     sy_top = sy + sh          # bovenkant van de speler
 
     # Blok-coördinaten in spelpixels
-    blok_links   = bx
-    blok_rechts  = bx + bw
-    blok_onder   = GROND_Y + bvY         # onderkant van het blok
-    blok_boven   = GROND_Y + bvY + bh    # bovenkant van het blok
+    blok_boven  = GROND_Y + bvY + bh    # bovenkant van het platform
+    blok_onder  = GROND_Y + bvY         # onderkant van het platform
 
-    # Horizontaal overlappend? (met kleine marge)
+    # Horizontaal overlappend? (met kleine marge zodat het eerlijker voelt)
     marge = 5
-    horizontaal = (sx + marge < blok_rechts and sx + sw - marge > blok_links)
+    horizontaal = (sx + marge < bx + bw and sx + sw - marge > bx)
 
     if not horizontaal:
         return 'geen'
@@ -191,13 +191,18 @@ def controleer_botsing(speler, blok):
     if sy_top <= blok_onder or sy >= blok_boven:
         return 'geen'
 
-    # Horizontaal EN verticaal overlappend — nu bepalen we of het landing of crash is.
-    # Landing: speler valt naar beneden EN de onderkant van de speler is vlakbij de bovenkant van het blok
-    afstand_tot_top = abs(sy - blok_boven)
-    if speler.snelheid_y <= 0 and afstand_tot_top < 16:
+    # --- Overlap gevonden! Bepaal of landing of crash ---
+
+    # Omhoog gaand (springt van de grond omhoog): door het platform heen gaan (zoals bij Mario)
+    if speler.snelheid_y > 0:
+        return 'geen'
+
+    # Controleer of de speler van BOVEN op het platform is gevallen.
+    # prev_y = positie vóór deze frame. Als prev_y >= blok_boven was de speler erBOVEN.
+    if prev_y >= blok_boven - 4:
         return 'landen'
 
-    # Zijkant of van onderaf = crash
+    # Speler is in de zijkant gevlogen → game over
     return 'crash'
 
 
@@ -275,8 +280,11 @@ def speel():
             for blok in blokken:
                 blok[4] = False
 
-            # Speler bijwerken (geeft de blokkenlijst mee voor platform-landing)
-            speler.bijwerken(blokken)
+            # Sla de positie op VOOR de beweging (nodig voor landing-detectie)
+            prev_y = speler.y
+
+            # Speler bijwerken (zwaartekracht + grond-botsing)
+            speler.bijwerken()
 
             # Nieuw blok spawnen?
             volgende_blok -= 1
@@ -291,7 +299,7 @@ def speel():
             for blok in blokken:
                 blok[0] -= snelheid
 
-                resultaat = controleer_botsing(speler, blok)
+                resultaat = controleer_botsing(speler, blok, prev_y)
                 if resultaat == 'landen':
                     # Speler landt bovenop het platform!
                     blok_boven = GROND_Y + blok[1] + blok[3]

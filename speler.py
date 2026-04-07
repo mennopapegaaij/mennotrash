@@ -26,50 +26,21 @@ class Speler:
             self.snelheid_y = SPRING_KRACHT
             self.op_grond = False
 
-    def bijwerken(self, blokken=None):
-        """Beweeg het vierkantje omhoog/omlaag. Controleer of hij op een platform landt."""
+    def bijwerken(self):
+        """Beweeg het vierkantje omhoog/omlaag door zwaartekracht."""
         self._teller += 1
 
         # Zwaartekracht trekt het vierkantje naar beneden
         self.snelheid_y -= ZWAARTEKRACHT
         self.y += self.snelheid_y
 
-        # Standaard is de vloer de grond
-        vloer = GROND_Y
-
-        # Kijk of een platform onder de speler zit (kan erop landen)
-        if blokken and self.snelheid_y <= 0:
-            for blok in blokken:
-                bx  = blok[0]
-                bvY = blok[2]           # vlieg_y van het blok (hoogte boven de grond)
-                bw  = blok[3]           # breedte van het blok
-                bh  = blok[4]           # hoogte (dikte) van het blok
-
-                # Bovenkant van het platform (in spel-coördinaten)
-                platform_top = GROND_Y + bvY + bh
-
-                # Ligt de speler horizontaal boven het platform?
-                if (self.x + self.breedte - 6 > bx and
-                        self.x + 6 < bx + bw):
-                    # Is de speler vlak boven het platform (met wat marge)?
-                    if (self.y <= platform_top + 4 and
-                            self.y >= platform_top - 14):
-                        # Hoger platform = nieuwe vloer
-                        if platform_top > vloer:
-                            vloer = platform_top
-                            blok[5] = True   # Markeer: speler staat hier op
-
-        # Niet verder vallen dan de vloer
-        if self.y <= vloer:
-            self.y = vloer
+        # Niet verder vallen dan de grond
+        if self.y <= GROND_Y:
+            self.y = GROND_Y
             self.snelheid_y = 0
             self.op_grond = True
-            self.platform_y = vloer
         else:
-            # In de lucht — maar misschien staat hij op een platform
-            # Als hij niet meer boven een platform hangt, valt hij gewoon door
-            if self.y > vloer + 2:
-                self.op_grond = False
+            self.op_grond = False  # Kan worden overschreven door platform-landing in main.py
 
     def teken(self, scherm):
         """Teken het vierkantje met een grappig gezicht (geen benen)."""
