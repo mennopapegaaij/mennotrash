@@ -108,34 +108,32 @@ def teken_blok(blok):
         pygame.draw.line(scherm, OOG_KLEUR,
                          (bx + bw - 14, oog_y - 3), (bx + bw - 6,  oog_y - 6), 2)
 
-    # Stekels (zwarte driehoeken) boven en onder het blok
-    teken_driehoeken(bx, bvY, bw, bh)
+    # Stekels (zwarte driehoeken) op willekeurige plekken boven en onder
+    teken_driehoeken(bx, bvY, bh, blok[5])
 
 
-def teken_driehoeken(bx, bvY, bw, bh, stekel_grootte=10):
-    """Teken zwarte stekels (driehoeken) boven en onder het blok."""
-    blok_top_s   = SCHERM_HOOGTE - GROND_Y - bvY - bh   # bovenkant in scherm-coords
-    blok_onder_s = SCHERM_HOOGTE - GROND_Y - bvY          # onderkant in scherm-coords
+def teken_driehoeken(bx, bvY, bh, stekel_posities, stekel_grootte=10):
+    """Teken zwarte stekels op de opgegeven posities (boven of onder het blok).
+    stekel_posities = lijst van (relatieve_x, kant) waarbij kant 'boven' of 'onder' is.
+    """
+    blok_top_s   = SCHERM_HOOGTE - GROND_Y - bvY - bh
+    blok_onder_s = SCHERM_HOOGTE - GROND_Y - bvY
 
-    # Hoeveel driehoeken passen er naast elkaar?
-    passen = max(1, bw // (stekel_grootte * 2))
+    for (rel_x, kant) in stekel_posities:
+        mx = int(bx + rel_x)
 
-    for i in range(passen):
-        mx = bx + i * (stekel_grootte * 2) + stekel_grootte
-
-        # Driehoek BOVEN (punt omhoog)
-        pygame.draw.polygon(scherm, (10, 10, 10), [
-            (mx - stekel_grootte, blok_top_s),
-            (mx + stekel_grootte, blok_top_s),
-            (mx,                  blok_top_s - stekel_grootte),
-        ])
-
-        # Driehoek ONDER (punt omlaag)
-        pygame.draw.polygon(scherm, (10, 10, 10), [
-            (mx - stekel_grootte, blok_onder_s),
-            (mx + stekel_grootte, blok_onder_s),
-            (mx,                  blok_onder_s + stekel_grootte),
-        ])
+        if kant == 'boven':
+            pygame.draw.polygon(scherm, (10, 10, 10), [
+                (mx - stekel_grootte, blok_top_s),
+                (mx + stekel_grootte, blok_top_s),
+                (mx,                  blok_top_s - stekel_grootte),
+            ])
+        else:
+            pygame.draw.polygon(scherm, (10, 10, 10), [
+                (mx - stekel_grootte, blok_onder_s),
+                (mx + stekel_grootte, blok_onder_s),
+                (mx,                  blok_onder_s + stekel_grootte),
+            ])
 
 
 def teken_hud(score, snelheid, game_over, hoogste_score):
@@ -232,20 +230,30 @@ def controleer_botsing(speler, blok, prev_y):
 
 def nieuw_blok():
     """Maak een nieuw vliegend platform.
-    Geeft een lijst terug: [x, vlieg_y, breedte, hoogte, op_speler]
+    Geeft een lijst terug: [x, vlieg_y, breedte, hoogte, op_speler, stekel_posities]
     Sommige blokken zijn lang, anderen kort.
     """
     vlieg_y = random.randint(BLOK_MIN_VLIEG_Y, BLOK_MAX_VLIEG_Y)
-    # Willekeurig: soms een kort blok, soms een lang blok
     kans_lang = random.random()
     if kans_lang < 0.25:
-        breedte = random.randint(160, 260)   # lang platform
+        breedte = random.randint(160, 260)
     elif kans_lang < 0.6:
-        breedte = random.randint(80, 140)    # normaal platform
+        breedte = random.randint(80, 140)
     else:
-        breedte = random.randint(40, 75)     # klein platform (moeilijker)
+        breedte = random.randint(40, 75)
     hoogte = BLOK_HOOGTE
-    return [float(SCHERM_BREEDTE + 20), vlieg_y, breedte, hoogte, False]
+
+    # Bereken stekelposities: elke mogelijke plek heeft 5% kans op een stekel
+    stekel_grootte = 10
+    stekel_posities = []
+    for i in range(max(1, breedte // (stekel_grootte * 2))):
+        rel_x = i * (stekel_grootte * 2) + stekel_grootte
+        if random.random() < 0.05:   # 5% kans: stekel boven
+            stekel_posities.append((rel_x, 'boven'))
+        if random.random() < 0.05:   # 5% kans: stekel onder
+            stekel_posities.append((rel_x, 'onder'))
+
+    return [float(SCHERM_BREEDTE + 20), vlieg_y, breedte, hoogte, False, stekel_posities]
 
 
 # =============================================
