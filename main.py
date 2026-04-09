@@ -136,6 +136,35 @@ def teken_driehoeken(bx, bvY, bh, stekel_posities, stekel_grootte=10):
             ])
 
 
+def teken_grond_stekels(grond_stekels):
+    """Teken zwarte driehoeken op de grond (stekels die omhoog wijzen)."""
+    stekel_b = 10
+    stekel_h = 14
+    grond_s  = SCHERM_HOOGTE - GROND_Y   # y-coördinaat van de grond op het scherm
+
+    for sx in grond_stekels:
+        mx = int(sx)
+        pygame.draw.polygon(scherm, (10, 10, 10), [
+            (mx - stekel_b, grond_s),
+            (mx + stekel_b, grond_s),
+            (mx,            grond_s - stekel_h),
+        ])
+
+
+def raakt_grondstekel(speler, grond_stekels):
+    """Controleer of de speler een grondstekel aanraakt."""
+    if speler.y > GROND_Y + 2:
+        return False   # Speler is in de lucht, geen gevaar
+    stekel_b = 10
+    marge = 4
+    sx_speler = speler.x + marge
+    ex_speler = speler.x + speler.breedte - marge
+    for sx in grond_stekels:
+        if sx_speler < sx + stekel_b and ex_speler > sx - stekel_b:
+            return True
+    return False
+
+
 def teken_hud(score, snelheid, game_over, hoogste_score):
     """Teken de score en informatie bovenaan het scherm."""
     score_tekst = font_middel.render(f"Score: {score}", True, SCORE_KLEUR)
@@ -243,15 +272,13 @@ def nieuw_blok():
         breedte = random.randint(40, 75)
     hoogte = BLOK_HOOGTE
 
-    # Bereken stekelposities: elke mogelijke plek heeft 5% kans op een stekel
+    # Bereken stekelposities: elke mogelijke plek heeft 5% kans op een stekel BOVEN
     stekel_grootte = 10
     stekel_posities = []
     for i in range(max(1, breedte // (stekel_grootte * 2))):
         rel_x = i * (stekel_grootte * 2) + stekel_grootte
-        if random.random() < 0.05:   # 5% kans: stekel boven
+        if random.random() < 0.05:   # 5% kans: stekel boven op het blok
             stekel_posities.append((rel_x, 'boven'))
-        if random.random() < 0.05:   # 5% kans: stekel onder
-            stekel_posities.append((rel_x, 'onder'))
 
     return [float(SCHERM_BREEDTE + 20), vlieg_y, breedte, hoogte, False, stekel_posities]
 
@@ -264,12 +291,14 @@ def reset_spel():
     """Reset alle speldata voor een nieuw potje."""
     speler = Speler()
     blokken = []
+    grond_stekels = []        # Lijst van x-posities van stekels op de grond
     teller = 0
     score = 0
     snelheid = BEGIN_SNELHEID
     volgende_blok = random.randint(60, 110)
+    volgende_stekel = random.randint(40, 90)   # Wanneer de volgende grondstekel spawnt
     schuif = 0.0
-    return speler, blokken, teller, score, snelheid, volgende_blok, schuif
+    return speler, blokken, grond_stekels, teller, score, snelheid, volgende_blok, volgende_stekel, schuif
 
 
 # =============================================
@@ -281,7 +310,7 @@ def speel():
     hoogste_score = 0
     status = "start"
 
-    speler, blokken, teller, score, snelheid, volgende_blok, schuif = reset_spel()
+    speler, blokken, grond_stekels, teller, score, snelheid, volgende_blok, volgende_stekel, schuif = reset_spel()
 
     while True:
         for event in pygame.event.get():
@@ -296,7 +325,7 @@ def speel():
                     elif status == "spelen":
                         speler.spring()
                     elif status == "game_over":
-                        speler, blokken, teller, score, snelheid, volgende_blok, schuif = reset_spel()
+                        speler, blokken, grond_stekels, teller, score, snelheid, volgende_blok, volgende_stekel, schuif = reset_spel()
                         status = "spelen"
 
         teken_achtergrond(teller)
@@ -330,19 +359,28 @@ def speel():
             volgende_blok -= 1
             if volgende_blok <= 0:
                 blokken.append(nieuw_blok())
-                # Dichter bij elkaar: kortere pauzes
                 min_pauze = max(15, 45 - int(snelheid * 3))
                 max_pauze = max(30,  80 - int(snelheid * 4))
                 volgende_blok = random.randint(min_pauze, max_pauze)
 
-            # Blokken bewegen, botsing controleren en tekenen
+            # Nieuwe grondstekel spawnen?
+            volgende_stekel -= 1
+            if volgende_stekel <= 0:
+                grond_stekels.append(float(SCHERM_BREEDTE + 20))
+                volgende_stekel = random.randint(50, 130)
+
+            # Grondstekels bewegen naar links
+            for i in range(len(grond_stekels)):
+                grond_stekels[i] -= snelheid
+            grond_stekels = [sx for sx in grond_stekels if sx > -20]
+
+            # Blokken bewegen, botsing controleren
             game_over_nu = False
             for blok in blokken:
                 blok[0] -= snelheid
 
                 resultaat = controleer_botsing(speler, blok, prev_y)
                 if resultaat == 'landen':
-                    # Speler landt bovenop het platform!
                     blok_boven = GROND_Y + blok[1] + blok[3]
                     speler.y = blok_boven
                     speler.snelheid_y = 0
@@ -352,10 +390,12 @@ def speel():
                     game_over_nu = True
                     break
 
-            # Als de speler op een platform stond en het platform schuift weg →
-            # kijk of hij nog boven een platform zweeft
+            # Grondstekel botsing controleren
+            if not game_over_nu and raakt_grondstekel(speler, grond_stekels):
+                game_over_nu = True
+
+            # Als de speler op een platform stond en het platform schuift weg
             if not game_over_nu:
-                # Controleer of speler boven de grond hangt zonder platform
                 op_platform = any(b[4] for b in blokken)
                 if not op_platform and speler.y > GROND_Y:
                     speler.op_grond = False
@@ -370,7 +410,10 @@ def speel():
                 teken_blok(blok)
 
             # Verwijder blokken die voorbij het scherm zijn
-            blokken = [b for b in blokken if b[0] > -BLOK_BREEDTE - 10]
+            blokken = [b for b in blokken if b[0] > -300]
+
+            # Grondstekels tekenen (na de grond, zodat ze erop staan)
+            teken_grond_stekels(grond_stekels)
 
             speler.teken(scherm)
             teken_hud(score, snelheid, False, hoogste_score)
@@ -378,6 +421,7 @@ def speel():
         elif status == "game_over":
             for blok in blokken:
                 teken_blok(blok)
+            teken_grond_stekels(grond_stekels)
             speler.teken(scherm)
             teken_hud(score, snelheid, True, hoogste_score)
             teken_game_over(score, hoogste_score, score >= hoogste_score and score > 0)
