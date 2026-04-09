@@ -165,6 +165,21 @@ def raakt_grondstekel(speler, grond_stekels):
     return False
 
 
+def raakt_blok_spike(speler, blok):
+    """Controleer of de speler een spike op een blok aanraakt bij het landen."""
+    stekel_b = 10
+    marge = 4
+    sx_speler = speler.x + marge
+    ex_speler = speler.x + speler.breedte - marge
+    bx = blok[0]
+    for (rel_x, kant) in blok[5]:
+        if kant == 'boven':
+            spike_mx = bx + rel_x
+            if sx_speler < spike_mx + stekel_b and ex_speler > spike_mx - stekel_b:
+                return True
+    return False
+
+
 def teken_hud(score, snelheid, game_over, hoogste_score):
     """Teken de score en informatie bovenaan het scherm."""
     score_tekst = font_middel.render(f"Score: {score}", True, SCORE_KLEUR)
@@ -383,6 +398,10 @@ def speel():
 
                 resultaat = controleer_botsing(speler, blok, prev_y)
                 if resultaat == 'landen':
+                    # Staat er een spike op deze landingsplek? Dan dood!
+                    if raakt_blok_spike(speler, blok):
+                        game_over_nu = True
+                        break
                     blok_boven = GROND_Y + blok[1] + blok[3]
                     speler.y = blok_boven
                     speler.snelheid_y = 0
