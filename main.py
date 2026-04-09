@@ -292,7 +292,7 @@ def nieuw_blok():
     stekel_posities = []
     for i in range(max(1, breedte // (stekel_grootte * 2))):
         rel_x = i * (stekel_grootte * 2) + stekel_grootte
-        if random.random() < 0.05:   # 5% kans: stekel boven op het blok
+        if random.random() < 0.01:   # 1% kans: stekel boven op het blok
             stekel_posities.append((rel_x, 'boven'))
 
     return [float(SCHERM_BREEDTE + 20), vlieg_y, breedte, hoogte, False, stekel_posities]
