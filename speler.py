@@ -21,9 +21,15 @@ class Speler:
         self._teller = 0              # Voor de animatie
 
     def spring(self):
-        """Laat het vierkantje springen (alleen als het op de grond/platform staat)."""
+        """Laat het vierkantje hoog springen (alleen als het op de grond/platform staat)."""
         if self.op_grond:
             self.snelheid_y = SPRING_KRACHT
+            self.op_grond = False
+
+    def klein_sprongje(self):
+        """Laat het vierkantje een klein sprongetje maken (pijltje omlaag)."""
+        if self.op_grond:
+            self.snelheid_y = SPRING_KRACHT * 0.45   # Ongeveer de helft zo hoog
             self.op_grond = False
 
     def bijwerken(self):

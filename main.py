@@ -327,6 +327,8 @@ def speel():
                     elif status == "game_over":
                         speler, blokken, grond_stekels, teller, score, snelheid, volgende_blok, volgende_stekel, schuif = reset_spel()
                         status = "spelen"
+                elif event.key == pygame.K_DOWN and status == "spelen":
+                    speler.klein_sprongje()   # Klein sprongetje met pijltje omlaag
 
         teken_achtergrond(teller)
         teken_grond(schuif)
